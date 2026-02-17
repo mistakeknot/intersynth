@@ -1,0 +1,14 @@
+{
+  "name": "intersynth",
+  "version": "0.1.0",
+  "description": "Multi-agent synthesis engine — collects findings from parallel review/research agents, deduplicates, writes verdicts, produces compact summaries. Keeps agent output out of the host context.",
+  "author": { "name": "MK", "email": "mistakeknot@vibeguider.org" },
+  "repository": "https://github.com/mistakeknot/intersynth",
+  "license": "MIT",
+  "keywords": ["synthesis", "multi-agent", "verdict", "context-efficiency", "review"],
+  "agents": [
+    "./agents/synthesize-review.md",
+    "./agents/synthesize-research.md"
+  ],
+  "hooks": "./hooks/hooks.json"
+}

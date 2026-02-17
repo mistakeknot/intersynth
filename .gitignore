@@ -1,0 +1,4 @@
+# Ephemeral verdict/review data
+.clavain/verdicts/
+.clavain/quality-gates/
+.clavain/reviews/

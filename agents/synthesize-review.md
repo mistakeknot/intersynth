@@ -68,11 +68,27 @@ For agents with `NEEDS_ATTENTION` status only, read the full Issues Found sectio
 
 ### 6. Deduplicate
 
-1. Group findings by section/file
-2. If multiple agents flag the same issue, keep the most specific version
-3. Track convergence: "N/M agents" per finding
-4. Flag conflicts when agents disagree
-5. Discard findings matching `PROTECTED_PATHS`
+Group findings by section/file, then apply these 5 rules in order:
+
+**Rule 1 — Same file:line + same issue → Merge:**
+If two findings reference the same `file:line` AND have matching titles (fuzzy: 3+ shared keywords or very similar phrasing), merge them into one finding. Credit all reporting agents, use the highest severity.
+
+**Rule 2 — Same file:line + different issues → Keep separate, tag co-located:**
+If two findings reference the same `file:line` but describe different problems, keep both as separate findings. Set `"co_located": true` and `"co_located_with": ["<other_id>"]` on each.
+
+**Rule 3 — Same issue + different locations → Keep separate, cross-reference:**
+If two findings describe the same issue (matching titles) but at different `file:line` locations, keep both. Add `"cross_references": ["<other_id>"]` to each so users see the pattern.
+
+**Rule 4 — Conflicting severity → Use highest:**
+When agents disagree on severity for the same issue, use the most severe rating. Record all positions: `"severity_conflict": {"agent1": "P1", "agent2": "P2"}`.
+
+**Rule 5 — Conflicting recommendations → Preserve both:**
+When agents disagree on the fix, include both recommendations in the `descriptions` map keyed by agent name. Do not pick a winner.
+
+**Additional rules:**
+- Track convergence: "N/M agents" per finding
+- Keep the most specific version when merging (prefer longer descriptions, project-level agents over plugin-level)
+- Discard findings matching `PROTECTED_PATHS`
 
 ### 7. Categorize
 
@@ -116,7 +132,7 @@ For agents with `NEEDS_ATTENTION` status only, read the full Issues Found sectio
   "reviewed": "YYYY-MM-DD",
   "agents_launched": [],
   "agents_completed": [],
-  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N}],
+  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": []}],
   "improvements": [{"id":"...", "agent":"...", "title":"..."}],
   "verdict": "safe|needs-changes|risky"
 }

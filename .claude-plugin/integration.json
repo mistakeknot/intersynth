@@ -1,0 +1,17 @@
+{
+  "ecosystem": "interverse",
+  "interbase_min_version": "1.0.0",
+  "ecosystem_only": false,
+  "standalone_features": [
+    "Multi-agent verdict aggregation and deduplication",
+    "Compact summary generation from agent output"
+  ],
+  "integrated_features": [
+    { "feature": "Auto-create beads from P0/P1 verdict findings", "requires": "beads" },
+    { "feature": "Sprint-aware verdict linking", "requires": "interphase" }
+  ],
+  "companions": {
+    "recommended": ["interflux"],
+    "optional": ["interphase"]
+  }
+}

@@ -14,6 +14,7 @@ You receive these parameters in your prompt:
 - `CONTEXT` — review context (diff summary, PR title, etc.)
 - `MODE` — one of: `quality-gates`, `review`, `flux-drive` (adjusts report format)
 - `PROTECTED_PATHS` — file patterns to exclude from findings (e.g., `docs/plans/*.md`)
+- `FINDINGS_TIMELINE` — path to `peer-findings.jsonl` (optional; may not exist if no agents wrote findings)
 
 ## Execution Steps
 
@@ -45,6 +46,34 @@ For each **valid** agent:
 For each **malformed** agent:
 1. Read the Summary and Issues Found sections as prose
 2. Extract findings manually
+
+### 3.5. Read Findings Timeline (optional)
+
+If `FINDINGS_TIMELINE` is provided:
+
+```bash
+ls {FINDINGS_TIMELINE} 2>/dev/null
+```
+
+If the file exists:
+1. Read it — each line is a JSON object with `severity`, `agent`, `category`, `summary`, `file_refs`, `timestamp`
+2. Build a timeline of when agents discovered and shared findings
+3. Use this in step 6 (Deduplicate) to:
+   - Track **convergence via timeline**: if Agent A wrote a blocking finding AND Agent B's report acknowledges it, note "Agent B adjusted based on Agent A's finding" — this is stronger convergence than independent discovery
+   - Detect **remaining contradictions**: if Agent A wrote a blocking finding about X but Agent B's report contradicts X without acknowledging the finding, flag this explicitly in the Conflicts section
+   - **Attribute discovery**: when deduplicating, the agent that wrote the finding to the timeline first gets discovery credit (`"discovered_by": "agent_name"`)
+4. Add a `## Findings Timeline` section to `synthesis.md` output:
+   ```markdown
+   ## Findings Timeline
+   | Time | Agent | Severity | Category | Summary |
+   |------|-------|----------|----------|---------|
+   [one row per finding, ordered by timestamp]
+
+   **Cross-agent adjustments:** [count] agents adjusted their analysis based on peer findings.
+   **Unresolved contradictions:** [count or "None"]
+   ```
+
+If the file doesn't exist or is empty, skip this step entirely — synthesis proceeds as before.
 
 ### 4. Write verdicts
 

@@ -1,6 +1,6 @@
 {
   "name": "intersynth",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Multi-agent synthesis engine — collects findings from parallel review/research agents, deduplicates, writes verdicts, produces compact summaries. Keeps agent output out of the host context.",
   "author": {
     "name": "MK",
@@ -18,5 +18,9 @@
   "agents": [
     "./agents/synthesize-review.md",
     "./agents/synthesize-research.md"
-  ]
+  ],
+  "agentCapabilities": {
+    "./agents/synthesize-review.md": ["synthesis:review", "synthesis:dedup"],
+    "./agents/synthesize-research.md": ["synthesis:research", "synthesis:attribution"]
+  }
 }

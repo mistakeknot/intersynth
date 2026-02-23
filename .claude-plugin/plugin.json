@@ -18,6 +18,5 @@
   "agents": [
     "./agents/synthesize-review.md",
     "./agents/synthesize-research.md"
-  ],
-  "hooks": "./hooks/hooks.json"
+  ]
 }

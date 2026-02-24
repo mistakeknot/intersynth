@@ -18,9 +18,5 @@
   "agents": [
     "./agents/synthesize-review.md",
     "./agents/synthesize-research.md"
-  ],
-  "agentCapabilities": {
-    "./agents/synthesize-review.md": ["synthesis:review", "synthesis:dedup"],
-    "./agents/synthesize-research.md": ["synthesis:research", "synthesis:attribution"]
-  }
+  ]
 }

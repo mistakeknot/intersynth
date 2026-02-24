@@ -94,7 +94,7 @@ bash dispatch-synthesis.sh \
 **Risk:** Low — dispatch.sh is battle-tested
 
 ### Task 3: Update quality-gates.md to use Codex dispatch
-**File:** `hub/clavain/commands/quality-gates.md`
+**File:** `os/clavain/commands/quality-gates.md`
 
 **Changes:**
 Replace the current Task-based synthesis:
@@ -127,7 +127,7 @@ Add fallback: if `codex` CLI not available, fall back to `Task(intersynth:synthe
 **Risk:** Low
 
 ### Task 4: Update review.md to use Codex dispatch
-**File:** `hub/clavain/commands/review.md`
+**File:** `os/clavain/commands/review.md`
 
 **Changes:** Same pattern as Task 3, with `--context "PR #{pr_number} — {title}"` and `--protected-paths "docs/plans/*.md, docs/solutions/*.md"`.
 

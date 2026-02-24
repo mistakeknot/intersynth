@@ -10,6 +10,14 @@ Two specialized synthesis agents handle the different contracts: `synthesize-rev
 
 ## Installation
 
+First, add the [interagency marketplace](https://github.com/mistakeknot/interagency-marketplace) (one-time setup):
+
+```bash
+/plugin marketplace add mistakeknot/interagency-marketplace
+```
+
+Then install the plugin:
+
 ```bash
 /plugin install intersynth
 ```

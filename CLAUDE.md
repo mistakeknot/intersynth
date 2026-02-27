@@ -4,12 +4,13 @@ Multi-agent synthesis engine. Collects findings from parallel review/research ag
 
 ## Overview
 
-2 agents, 0 commands, 0 skills, 0 hooks. Companion plugin for Clavain and Interflux.
+3 agents, 0 commands, 0 skills, 0 hooks. Companion plugin for Clavain and Interflux.
 
 ## Agents
 
 - `intersynth:synthesize-review` — synthesis for code reviews (quality-gates, review, flux-drive)
 - `intersynth:synthesize-research` — synthesis for research queries (flux-research)
+- `intersynth:synthesize-documents` — synthesis for document clusters (compound, reflect, research → docs/solutions/)
 
 ## Verdict Library
 
@@ -46,7 +47,7 @@ Task(intersynth:synthesize-review):
 
 ```bash
 python3 -c "import json; json.load(open('.claude-plugin/plugin.json'))"  # Manifest check
-ls agents/*.md | wc -l  # Should be 2
+ls agents/*.md | wc -l  # Should be 3
 bash -n hooks/lib-verdict.sh  # Syntax check
 ```
 

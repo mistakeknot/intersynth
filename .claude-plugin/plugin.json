@@ -17,6 +17,7 @@
   ],
   "agents": [
     "./agents/synthesize-review.md",
-    "./agents/synthesize-research.md"
+    "./agents/synthesize-research.md",
+    "./agents/synthesize-documents.md"
   ]
 }

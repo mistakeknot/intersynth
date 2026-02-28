@@ -161,7 +161,7 @@ When agents disagree on the fix, include both recommendations in the `descriptio
   "reviewed": "YYYY-MM-DD",
   "agents_launched": [],
   "agents_completed": [],
-  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": []}],
+  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": [], "severity_conflict": null}],
   "improvements": [{"id":"...", "agent":"...", "title":"..."}],
   "verdict": "safe|needs-changes|risky"
 }

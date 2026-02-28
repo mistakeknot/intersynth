@@ -3,3 +3,4 @@
 .clavain/quality-gates/
 .clavain/reviews/
 .clavain/interspect/
+__pycache__/

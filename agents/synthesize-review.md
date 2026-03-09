@@ -77,9 +77,12 @@ If the file doesn't exist or is empty, skip this step entirely — synthesis pro
 
 ### 4. Write verdicts
 
-If `VERDICT_LIB` is available:
+Resolve verdict library path. If `VERDICT_LIB` is `auto` or not a valid file, find it from the intersynth plugin:
 ```bash
-source "{VERDICT_LIB}" 2>/dev/null || true
+if [[ "${VERDICT_LIB:-}" == "auto" || ! -f "${VERDICT_LIB:-}" ]]; then
+    VERDICT_LIB="${CLAUDE_PLUGIN_ROOT}/hooks/lib-verdict.sh"
+fi
+source "$VERDICT_LIB" 2>/dev/null || true
 verdict_init
 ```
 

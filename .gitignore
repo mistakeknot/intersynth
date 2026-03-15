@@ -1,6 +1,3 @@
-# Ephemeral verdict/review data
-.clavain/verdicts/
-.clavain/quality-gates/
-.clavain/reviews/
-.clavain/interspect/
+# Ephemeral runtime state
+.clavain/
 __pycache__/

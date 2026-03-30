@@ -202,6 +202,13 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
 
 5. **Keep top 3** perspectives by quality_score. If fewer than 2 distinct perspectives exist, skip the output section entirely (nothing unique to preserve).
 
+6. **Compute DWSQ (Diversity-Weighted Signal Quality):**
+   - `mean_finding_quality` = weighted average of all findings using weights: P0=1.0, P1=0.7, P2=0.3, P3=0.1, IMP=0.05
+   - `diversity_bonus` = min(count(distinct_perspectives) / count(total_agents), 0.5)
+   - `dwsq = mean_finding_quality * (1 + diversity_bonus)`
+   - Add to findings.json: `"dwsq": {"score": N, "mean_quality": N, "diversity_bonus": N}`
+   - If no findings exist, DWSQ = 0. If single agent, diversity_bonus = 0.
+
 ### 7. Categorize
 
 - P0/P1 CRITICAL — must fix (blocks merge/shipping)
@@ -272,6 +279,7 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
   "improvements": [{"id":"...", "agent":"...", "title":"..."}],
   "verdict": "safe|needs-changes|risky",
   "perspectives": [{"agent": "...", "domain": "...", "narrative": "...", "key_findings": [], "quality_score": 0.0}],
+  "dwsq": {"score": 0.0, "mean_quality": 0.0, "diversity_bonus": 0.0},
   "sycophancy_analysis": {
     "agents": {"agent-name": {"agreement_rate": 0.0, "independent_rate": 0.0, "novel_findings": 0, "flagged": false, "flag_type": null}},
     "overall_conformity": 0.0,

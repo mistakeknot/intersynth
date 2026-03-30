@@ -109,6 +109,27 @@ If reaction files exist:
    - **Domain-peer disputes** (disagreement between agents in the same domain): Set `"verdict": "needs-human-review"`. These are expert-vs-expert disputes the synthesis agent cannot resolve.
    - **Domain-outsider disputes** (disagreement from an agent outside the finding's domain): Lower confidence on the disagreement, but do NOT suppress it. Note: `"outsider_dispute": true`.
 
+### 3.8. Sycophancy Scoring (optional)
+
+If Step 3.7 parsed reaction data AND `sycophancy_detection.enabled` is true (from `config/flux-drive/reaction.yaml`), compute per-agent sycophancy metrics:
+
+1. **Per-agent metrics** (from reactions parsed in Step 3.7):
+   - `agreement_rate = count(stance in [agree, partially-agree]) / total_reactions`
+   - `independent_rate = count(independent_coverage == yes) / total_reactions`
+   - `novel_finding_rate = count(reactive_additions) / total_reactions`
+   - Agents with zero reactions are excluded from scoring.
+
+2. **Flag agents:**
+   - **Sycophancy flag:** `agreement_rate > agreement_threshold` AND `independent_rate < independence_threshold` → agent may be rubber-stamping peers rather than independently evaluating
+   - **Contrarian flag:** `agreement_rate < contrarian_threshold` → agent disagrees with almost everything, which may indicate miscalibration rather than genuine insight
+
+3. **Overall conformity:** `overall_conformity = mean(agreement_rate)` across all reacting agents.
+   - If `overall_conformity > 0.9`: add warning to synthesis output: "High overall conformity (>90%) — consider adding adversarial agents or increasing agent diversity in future reviews."
+
+4. **Store results** for use in Step 8 (output) — both the per-agent table and the overall conformity score.
+
+If no reaction data exists (reaction round skipped or disabled), skip this step entirely.
+
 ### 4. Write verdicts
 
 Resolve verdict library path. If `VERDICT_LIB` is `auto` or not a valid file, find it from the intersynth plugin:
@@ -189,6 +210,17 @@ When agents disagree on the fix, include both recommendations in the `descriptio
 ### Reaction Analysis
 [If reaction round ran: convergence summary — how many findings were confirmed, contested, or extended. 5 lines max. If no reaction data, omit this section.]
 
+### Sycophancy Analysis
+[If reaction round ran AND sycophancy_detection enabled: per-agent table. If no reaction data, omit this section entirely.]
+
+| Agent | Reactions | Agreement | Independence | Novel | Flag |
+|-------|-----------|-----------|-------------|-------|------|
+[one row per reacting agent]
+
+**Overall conformity:** [overall_conformity as percentage]
+[If overall_conformity > 90%: "⚠ High overall conformity — consider adding adversarial agents or increasing agent diversity."]
+[If any agents flagged: list them with flag type]
+
 ### Conflicts
 [Agent disagreements from initial review, or "None". Reaction-based disagreements go in Contested Findings above.]
 
@@ -206,7 +238,12 @@ When agents disagree on the fix, include both recommendations in the `descriptio
   "agents_completed": [],
   "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": [], "severity_conflict": null, "reactions": [], "reaction_convergence": null, "verdict": null, "provenance": null}],
   "improvements": [{"id":"...", "agent":"...", "title":"..."}],
-  "verdict": "safe|needs-changes|risky"
+  "verdict": "safe|needs-changes|risky",
+  "sycophancy_analysis": {
+    "agents": {"agent-name": {"agreement_rate": 0.0, "independent_rate": 0.0, "novel_findings": 0, "flagged": false, "flag_type": null}},
+    "overall_conformity": 0.0,
+    "flagged_agents": []
+  }
 }
 ```
 
@@ -222,6 +259,7 @@ Verdict: [safe|needs-changes|risky]
 Gate: [PASS|FAIL]
 P0: [count] | P1: [count] | P2: [count] | IMP: [count]
 Conflicts: [count or "none"]
+Sycophancy: [N flagged agents or "none"] | Conformity: [overall_conformity %]
 Top findings:
 - [severity] [title] — [agent] ([convergence])
 - ...

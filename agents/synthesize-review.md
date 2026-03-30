@@ -177,6 +177,31 @@ When agents disagree on the fix, include both recommendations in the `descriptio
 - Keep the most specific version when merging (prefer longer descriptions, project-level agents over plugin-level)
 - Discard findings matching `PROTECTED_PATHS`
 
+### 6.5. Extract Diverse Perspectives (QDAIF)
+
+Preserve distinct agent viewpoints as first-class objects alongside merged findings. This prevents convergence from erasing unique framings.
+
+1. **Candidate selection:** For each agent with `NEEDS_ATTENTION` verdict (from Step 4), read their Summary section (already loaded in Step 5 drill-down).
+
+2. **Build mini-narratives:** For each candidate agent, compose a 2-4 sentence narrative capturing:
+   - The agent's domain focus (e.g., "trust boundaries", "coupling", "data consistency")
+   - Their unique framing of the issues (how they connect findings into a story)
+   - Their key finding IDs
+
+3. **Distinctness filter:** Skip an agent's perspective if:
+   - All their findings were merged into the main list without unique framing
+   - Their narrative is substantially similar to another agent's (same findings, same framing)
+   - They have zero unique findings AND zero severity conflicts
+
+4. **Quality score:** Rank remaining perspectives:
+   - Base: 0.5
+   - +0.2 if agent has confirmed findings (convergence count > 1 for any finding)
+   - +0.2 if agent has high independence (independent_rate > 0.5, from Step 3.8)
+   - +0.1 if agent has unique findings (found by no other agent)
+   - -0.2 if agent was flagged for sycophancy (from Step 3.8)
+
+5. **Keep top 3** perspectives by quality_score. If fewer than 2 distinct perspectives exist, skip the output section entirely (nothing unique to preserve).
+
 ### 7. Categorize
 
 - P0/P1 CRITICAL — must fix (blocks merge/shipping)
@@ -221,6 +246,13 @@ When agents disagree on the fix, include both recommendations in the `descriptio
 [If overall_conformity > 90%: "⚠ High overall conformity — consider adding adversarial agents or increasing agent diversity."]
 [If any agents flagged: list them with flag type]
 
+### Diverse Perspectives
+[If 2+ agents have materially distinct viewpoints (from Step 6.5): show top 2-3 as mini-narratives. Each entry: agent name, domain focus, 2-4 sentence framing, key finding IDs, quality score. If fewer than 2 distinct perspectives, omit this section.]
+
+**{agent_name}** ({domain focus}, quality: {score}):
+> {2-4 sentence narrative of their unique framing}
+> Key findings: {finding IDs}
+
 ### Conflicts
 [Agent disagreements from initial review, or "None". Reaction-based disagreements go in Contested Findings above.]
 
@@ -239,6 +271,7 @@ When agents disagree on the fix, include both recommendations in the `descriptio
   "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": [], "severity_conflict": null, "reactions": [], "reaction_convergence": null, "verdict": null, "provenance": null}],
   "improvements": [{"id":"...", "agent":"...", "title":"..."}],
   "verdict": "safe|needs-changes|risky",
+  "perspectives": [{"agent": "...", "domain": "...", "narrative": "...", "key_findings": [], "quality_score": 0.0}],
   "sycophancy_analysis": {
     "agents": {"agent-name": {"agreement_rate": 0.0, "independent_rate": 0.0, "novel_findings": 0, "flagged": false, "flag_type": null}},
     "overall_conformity": 0.0,

@@ -24,7 +24,7 @@ You receive these parameters in your prompt:
 ls {OUTPUT_DIR}/*.md 2>/dev/null
 ```
 
-List all `.md` files. Exclude `summary.md`, `synthesis.md`, `findings.json` (these are your outputs, not agent outputs).
+List all `.md` files. Exclude `summary.md`, `synthesis.md`, `findings.json` (these are your outputs, not agent outputs). Also exclude `*.reactions.md` and `*.reactions.error.md` — these are reaction round outputs, ingested separately in Step 3.7.
 
 ### 2. Validate each agent file
 
@@ -74,6 +74,40 @@ If the file exists:
    ```
 
 If the file doesn't exist or is empty, skip this step entirely — synthesis proceeds as before.
+
+### 3.7. Read Reactions (optional)
+
+Check for reaction round output files:
+
+```bash
+ls {OUTPUT_DIR}/*.reactions.md 2>/dev/null
+```
+
+If no `.reactions.md` files exist, skip this step — synthesis proceeds without reaction data.
+
+If reaction files exist:
+
+1. **Parse each `.reactions.md` file.** Extract structured data:
+   - Finding ID → Stance (agree/partially-agree/disagree/missed-this)
+   - Independent Coverage (yes/partial/no)
+   - Rationale (1-2 sentences)
+   - Evidence (file:line or spec reference, if provided)
+   - Verdict (no-concerns/confirms-findings/adds-evidence/contradicts-findings)
+   - Any Reactive Additions (new findings with `provenance: reactive`)
+
+2. **Annotate findings.** For each reaction, match the Finding ID to the corresponding finding from Step 3. Annotate with:
+   ```json
+   "reactions": [{"agent": "fd-safety", "stance": "agree", "independent_coverage": "yes", "rationale": "..."}]
+   ```
+
+3. **Apply conductor score (weighting schema):**
+
+   - **Convergent reactions** (>50% of reacting agents agree): Confidence boost only. **Severity unchanged.** Add `"reaction_convergence": "confirmed"` to the finding.
+   - **Divergent reactions** (any agent disagrees): Flag as `"verdict": "contested"`. Add a synthesis note explaining why the final severity was chosen. The disagreeing agent's rationale must be quoted.
+   - **Extension reactions** (agent adds a Reactive Addition): Treat as a new finding with `"provenance": "reactive"`. Route through normal dedup (Step 6). Reactive additions receive a **provenance discount** in convergence scoring — they count as 0.5 instead of 1.0 when computing convergence ratios.
+   - **Reactions cannot promote severity tier.** A P2 finding cannot become P1 because multiple agents agreed it matters. Severity is set by the original finding's author.
+   - **Domain-peer disputes** (disagreement between agents in the same domain): Set `"verdict": "needs-human-review"`. These are expert-vs-expert disputes the synthesis agent cannot resolve.
+   - **Domain-outsider disputes** (disagreement from an agent outside the finding's domain): Lower confidence on the disagreement, but do NOT suppress it. Note: `"outsider_dispute": true`.
 
 ### 4. Write verdicts
 
@@ -144,13 +178,19 @@ When agents disagree on the fix, include both recommendations in the `descriptio
 |-------|--------|---------|
 [one row per agent]
 
+### Contested Findings
+[P0/P1 findings with `verdict: contested` or `verdict: needs-human-review` from reaction round. Include the disagreeing agent's rationale. If no reactions or no contested findings, omit this section.]
+
 ### Findings
-[P0/P1 findings with agent attribution, file:line, convergence count]
+[P0/P1 findings with agent attribution, file:line, convergence count, reaction annotations]
 [P2 findings]
 [P3/IMP suggestions]
 
+### Reaction Analysis
+[If reaction round ran: convergence summary — how many findings were confirmed, contested, or extended. 5 lines max. If no reaction data, omit this section.]
+
 ### Conflicts
-[Agent disagreements, or "None"]
+[Agent disagreements from initial review, or "None". Reaction-based disagreements go in Contested Findings above.]
 
 ### Files
 - Agent reports: `{OUTPUT_DIR}/{agent-name}.md`
@@ -164,7 +204,7 @@ When agents disagree on the fix, include both recommendations in the `descriptio
   "reviewed": "YYYY-MM-DD",
   "agents_launched": [],
   "agents_completed": [],
-  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": [], "severity_conflict": null}],
+  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": [], "severity_conflict": null, "reactions": [], "reaction_convergence": null, "verdict": null, "provenance": null}],
   "improvements": [{"id":"...", "agent":"...", "title":"..."}],
   "verdict": "safe|needs-changes|risky"
 }

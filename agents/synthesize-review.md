@@ -15,6 +15,7 @@ You receive these parameters in your prompt:
 - `MODE` — one of: `quality-gates`, `review`, `flux-drive` (adjusts report format)
 - `PROTECTED_PATHS` — file patterns to exclude from findings (e.g., `docs/plans/*.md`)
 - `FINDINGS_TIMELINE` — path to `peer-findings.jsonl` (optional; may not exist if no agents wrote findings)
+- `LORENZEN_CONFIG` — JSON string with flattened Lorenzen dialogue game config (optional; omit to skip move validation). Keys are at root level (not nested under `validation`). Example: `{"enabled":true,"attack_requires_evidence":true,"defense_requires_new_evidence":true,"new_assertion_max_per_agent":2}`
 
 ## Execution Steps
 
@@ -136,6 +137,34 @@ If Step 3.7 parsed reaction data AND `hearsay_detection.enabled` is true (from `
 4. **Reactive additions are never hearsay** — they introduce new findings, which inherently constitute independent evidence.
 
 If hearsay detection is disabled or no reaction data exists, skip this step.
+
+### 3.7c. Lorenzen Move Validation (optional)
+
+If `LORENZEN_CONFIG` is provided and its `enabled` field is true, validate each reaction's move legality. If `LORENZEN_CONFIG` is not provided or `enabled` is false, skip this step entirely.
+
+1. **Parse Move Type from each reaction.** If the `Move Type` field is absent from a reaction (pre-rsj.7 agents may not produce it), set `move_type: null` and `move_legality: null`. Do NOT infer move type from Stance — skip validation for this reaction.
+
+2. **For reactions with a Move Type present**, validate legality:
+
+   - **attack** (stance: disagree): Valid if the Evidence field contains a file:line or spec reference that is different from the original finding's evidence. If no counter-evidence → `move_legality: invalid`, reason: `"attack without counter-evidence"`.
+   - **defense** (stance: agree with evidence): Valid if the Evidence field contains references not already cited by the original finding. If it only re-cites the original → `move_legality: invalid`, reason: `"defense restates existing evidence"`.
+   - **new-assertion** (stance: missed-this): Count per agent. If the count exceeds `new_assertion_max_per_agent` (from LORENZEN_CONFIG, default: 2), excess assertions get `move_legality: capped`, reason: `"exceeded max new assertions"`.
+   - **concession**: Always valid (withdrawing a claim requires no evidence).
+
+3. **Tag each reaction:**
+   ```json
+   {"move_type": "attack", "move_legality": "valid", "legality_score": 1.0}
+   ```
+   For null move types: `{"move_type": null, "move_legality": null, "legality_score": null}`
+
+4. **Tally results** for use in Step 6.6 and Step 8:
+   - `total_moves`: count of reactions with non-null move_type
+   - `valid_moves`: count where move_legality == "valid"
+   - `invalid_moves`: count where move_legality == "invalid"
+   - `null_moves`: count where move_type is null
+   - `move_distribution`: count per move type (attack, defense, new-assertion, concession)
+
+If no reaction data exists, skip this step entirely.
 
 ### 3.8. Sycophancy Scoring (optional)
 
@@ -272,6 +301,32 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
    - Add to findings.json: `"dwsq": {"score": N, "mean_quality": N, "diversity_bonus": N}`
    - If no findings exist, DWSQ = 0. If single agent, diversity_bonus = 0.
 
+### 6.6. Compute Sawyer Flow Envelope
+
+Compute discourse health metrics from data already in memory — no additional file reads needed.
+
+1. **Participation Gini coefficient.** Using agent finding counts (tallied during Step 3 reading):
+   - Sort counts ascending: x₁ ≤ x₂ ≤ ... ≤ xₙ
+   - Gini = (2 × Σᵢ(i × xᵢ)) / (n × Σxᵢ) − (n+1)/n
+   - If n ≤ 1 or total findings = 0: Gini = 0
+
+2. **Novelty rate.** From dedup results (Step 6):
+   - For each finding, use `convergence_corrected` if available (from stemma analysis, Step 6.3), otherwise fall back to `convergence`
+   - novelty_rate = count(findings where effective_convergence == 1) / total_findings
+   - If total_findings = 0: novelty_rate = 0
+
+3. **Response relevance.** From the findings list:
+   - relevance = count(findings with non-empty `evidence_sources` array) / total_findings
+   - If total_findings = 0: relevance = 0
+
+4. **Flow state.** Compare against hardcoded defaults (matching discourse-sawyer.yaml):
+   - **healthy:** gini ≤ 0.3 AND novelty ≥ 0.1 AND relevance ≥ 0.7
+   - **degraded:** gini ≤ 0.5 AND novelty ≥ 0.05 AND relevance ≥ 0.5
+   - **unhealthy:** anything below degraded thresholds
+   - Collect warnings for any metric that fails the healthy threshold
+
+5. **Store results** for Step 8 output.
+
 ### 7. Categorize
 
 - P0/P1 CRITICAL — must fix (blocks merge/shipping)
@@ -326,6 +381,20 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
 > {2-4 sentence narrative of their unique framing}
 > Key findings: {finding IDs}
 
+### Discourse Quality
+[If Step 3.7c (Lorenzen) or Step 6.6 (Sawyer) produced data, include this section. If neither ran, omit entirely.]
+
+**Flow State:** {flow_state} (Gini={participation_gini}, novelty={novelty_rate}, relevance={response_relevance})
+[If flow_state is unhealthy or degraded: list warnings]
+
+**Move Legality:** {valid_count}/{total_moves} moves structurally valid ({null_count} skipped — no Move Type)
+**Move Distribution:** {attack}A {defense}D {new-assertion}N {concession}C
+
+[If any invalid moves:]
+| Agent | Move | Finding | Legality | Reason |
+|-------|------|---------|----------|--------|
+[one row per invalid move]
+
 ### Conflicts
 [Agent disagreements from initial review, or "None". Reaction-based disagreements go in Contested Findings above.]
 
@@ -362,6 +431,22 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
     "groups": [{"id": "SG-1", "findings": ["ARCH-01", "QUAL-03"], "shared_sources": ["src/auth.ts:45"], "convergence_original": 3, "convergence_corrected": 1}],
     "total_groups": 0,
     "total_corrected_findings": 0
+  },
+  "discourse_health": {
+    "participation_gini": 0.0,
+    "novelty_rate": 0.0,
+    "response_relevance": 0.0,
+    "flow_state": "healthy",
+    "warnings": []
+  },
+  "discourse_analysis": {
+    "lorenzen": {
+      "total_moves": 0,
+      "valid_moves": 0,
+      "invalid_moves": 0,
+      "null_moves": 0,
+      "move_distribution": {"attack": 0, "defense": 0, "new-assertion": 0, "concession": 0}
+    }
   }
 }
 ```
@@ -379,6 +464,7 @@ Gate: [PASS|FAIL]
 P0: [count] | P1: [count] | P2: [count] | IMP: [count]
 Conflicts: [count or "none"]
 Sycophancy: [N flagged agents or "none"] | Conformity: [overall_conformity %]
+Discourse: [flow_state] | Legality: [valid]/[total] valid | Moves: [attack]A [defense]D [new-assertion]N [concession]C
 Top findings:
 - [severity] [title] — [agent] ([convergence])
 - ...

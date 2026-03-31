@@ -105,9 +105,37 @@ If reaction files exist:
    - **Convergent reactions** (>50% of reacting agents agree): Confidence boost only. **Severity unchanged.** Add `"reaction_convergence": "confirmed"` to the finding.
    - **Divergent reactions** (any agent disagrees): Flag as `"verdict": "contested"`. Add a synthesis note explaining why the final severity was chosen. The disagreeing agent's rationale must be quoted.
    - **Extension reactions** (agent adds a Reactive Addition): Treat as a new finding with `"provenance": "reactive"`. Route through normal dedup (Step 6). Reactive additions receive a **provenance discount** in convergence scoring — they count as 0.5 instead of 1.0 when computing convergence ratios.
+   - **Hearsay reactions** (rsj.12): Confirmations tagged `"hearsay": true` in Step 3.7b count as **0.0** in convergence scoring. They appear in the report but do not inflate convergence ratios. Only independent confirmations (new evidence, `"hearsay": false`) count as 1.0.
    - **Reactions cannot promote severity tier.** A P2 finding cannot become P1 because multiple agents agreed it matters. Severity is set by the original finding's author.
    - **Domain-peer disputes** (disagreement between agents in the same domain): Set `"verdict": "needs-human-review"`. These are expert-vs-expert disputes the synthesis agent cannot resolve.
    - **Domain-outsider disputes** (disagreement from an agent outside the finding's domain): Lower confidence on the disagreement, but do NOT suppress it. Note: `"outsider_dispute": true`.
+
+### 3.7b. Hearsay Classification (optional)
+
+If Step 3.7 parsed reaction data AND `hearsay_detection.enabled` is true (from `config/flux-drive/reaction.yaml`), classify each confirming reaction as hearsay or independent:
+
+1. **For each reaction with verdict `confirms-findings` or stance `agree`/`partially-agree`:**
+
+   A reaction is **hearsay** if ALL of the following are true:
+   - No new `evidence` field with file:line references that differ from the original finding's evidence
+   - The `rationale` cites the original agent by name (e.g., "as fd-architecture noted", "fd-safety already identified")
+   - OR the `independent_coverage` field is `no`
+
+   A reaction is **independent** if ANY of the following are true:
+   - Has `evidence` field with file:line references NOT present in the original finding
+   - Has `independent_coverage` == `yes`
+   - Provides new code snippets or analysis not in the original finding
+
+2. **Tag each reaction:**
+   ```json
+   {"agent": "fd-quality", "stance": "agree", "hearsay": true, "hearsay_reason": "no new evidence, cites fd-architecture"}
+   ```
+
+3. **Contradictions and disagreements are never hearsay** — negative evidence is always independent by nature, because the agent must have performed its own analysis to reach a different conclusion.
+
+4. **Reactive additions are never hearsay** — they introduce new findings, which inherently constitute independent evidence.
+
+If hearsay detection is disabled or no reaction data exists, skip this step.
 
 ### 3.8. Sycophancy Scoring (optional)
 
@@ -240,7 +268,7 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
 [P3/IMP suggestions]
 
 ### Reaction Analysis
-[If reaction round ran: convergence summary — how many findings were confirmed, contested, or extended. 5 lines max. If no reaction data, omit this section.]
+[If reaction round ran: convergence summary — how many findings were confirmed, contested, or extended. Include hearsay stats if hearsay_detection enabled: "N of M confirmations were hearsay (discounted from convergence scoring)." 5 lines max. If no reaction data, omit this section.]
 
 ### Sycophancy Analysis
 [If reaction round ran AND sycophancy_detection enabled: per-agent table. If no reaction data, omit this section entirely.]
@@ -275,7 +303,7 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
   "reviewed": "YYYY-MM-DD",
   "agents_launched": [],
   "agents_completed": [],
-  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": [], "severity_conflict": null, "reactions": [], "reaction_convergence": null, "verdict": null, "provenance": null}],
+  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": [], "severity_conflict": null, "reactions": [], "reaction_convergence": null, "verdict": null, "provenance": null, "hearsay_count": 0, "independent_count": 0}],
   "improvements": [{"id":"...", "agent":"...", "title":"..."}],
   "verdict": "safe|needs-changes|risky",
   "perspectives": [{"agent": "...", "domain": "...", "narrative": "...", "key_findings": [], "quality_score": 0.0}],
@@ -284,6 +312,13 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
     "agents": {"agent-name": {"agreement_rate": 0.0, "independent_rate": 0.0, "novel_findings": 0, "flagged": false, "flag_type": null}},
     "overall_conformity": 0.0,
     "flagged_agents": []
+  },
+  "hearsay_analysis": {
+    "total_confirmations": 0,
+    "hearsay_count": 0,
+    "independent_count": 0,
+    "hearsay_rate": 0.0,
+    "discounted_findings": []
   }
 }
 ```

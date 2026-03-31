@@ -205,6 +205,41 @@ When agents disagree on the fix, include both recommendations in the `descriptio
 - Keep the most specific version when merging (prefer longer descriptions, project-level agents over plugin-level)
 - Discard findings matching `PROTECTED_PATHS`
 
+### 6.3. Stemma Analysis — Shared-Source Error Correlation (rsj.10)
+
+After deduplication, detect findings that share evidence sources — these may represent dependent discoveries from shared context rather than independent confirmations.
+
+1. **Collect evidence sources.** For each deduplicated finding, extract all `file:line` references from:
+   - The finding's own Evidence field
+   - Any convergent reactions' Evidence fields (from Step 3.7)
+   - Format: normalize paths to relative (strip project root), keep line numbers
+
+2. **Build stemma groups.** For each pair of findings, compute Jaccard similarity of their evidence source sets:
+   - `jaccard(A, B) = |A ∩ B| / |A ∪ B|`
+   - Findings with `jaccard > 0.5` are in the same **stemma group**
+   - Use transitive closure: if A↔B and B↔C share >0.5, all three are in one group
+   - Label groups: SG-1, SG-2, etc.
+
+3. **Compute convergence correction.** Within each stemma group:
+   - Count the number of **distinct evidence source sets** (not the number of agents)
+   - If 3 agents all cite `src/auth.ts:45-50`, that's 1 distinct source set → `corrected_convergence = 1`
+   - If 2 agents cite `src/auth.ts:45` and 1 cites `src/auth.ts:120`, that's 2 distinct sets → `corrected_convergence = 2`
+   - Add to finding: `"convergence_corrected": N` alongside existing `"convergence": M`
+
+4. **Tag findings:**
+   ```json
+   {
+     "stemma_group": "SG-1",
+     "evidence_sources": ["src/auth.ts:45", "src/auth.ts:48"],
+     "shared_context_overlap": 0.85,
+     "convergence_corrected": 1
+   }
+   ```
+
+5. **Skip conditions:** If fewer than 2 deduplicated findings have evidence_sources, skip stemma analysis entirely (nothing to correlate). Findings without file:line evidence are excluded from stemma grouping.
+
+**Note:** Stemma analysis does NOT modify severity or remove findings. It annotates convergence to distinguish independent discovery from shared-source amplification. The corrected convergence is displayed in the report; the original convergence is preserved for audit.
+
 ### 6.5. Extract Diverse Perspectives (QDAIF)
 
 Preserve distinct agent viewpoints as first-class objects alongside merged findings. This prevents convergence from erasing unique framings.
@@ -281,6 +316,9 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
 [If overall_conformity > 90%: "⚠ High overall conformity — consider adding adversarial agents or increasing agent diversity."]
 [If any agents flagged: list them with flag type]
 
+### Stemma Analysis
+[If stemma groups were detected in Step 6.3: list each group with its shared sources and convergence correction. Format: "SG-1: findings [IDs] share evidence from [sources] — convergence N→K". If no stemma groups, omit this section.]
+
 ### Diverse Perspectives
 [If 2+ agents have materially distinct viewpoints (from Step 6.5): show top 2-3 as mini-narratives. Each entry: agent name, domain focus, 2-4 sentence framing, key finding IDs, quality score. If fewer than 2 distinct perspectives, omit this section.]
 
@@ -303,7 +341,7 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
   "reviewed": "YYYY-MM-DD",
   "agents_launched": [],
   "agents_completed": [],
-  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "co_located": false, "cross_references": [], "severity_conflict": null, "reactions": [], "reaction_convergence": null, "verdict": null, "provenance": null, "hearsay_count": 0, "independent_count": 0}],
+  "findings": [{"id":"...", "severity":"P0", "agent":"...", "section":"...", "title":"...", "convergence": N, "convergence_corrected": null, "co_located": false, "cross_references": [], "severity_conflict": null, "reactions": [], "reaction_convergence": null, "verdict": null, "provenance": null, "hearsay_count": 0, "independent_count": 0, "stemma_group": null, "evidence_sources": [], "shared_context_overlap": null}],
   "improvements": [{"id":"...", "agent":"...", "title":"..."}],
   "verdict": "safe|needs-changes|risky",
   "perspectives": [{"agent": "...", "domain": "...", "narrative": "...", "key_findings": [], "quality_score": 0.0}],
@@ -319,6 +357,11 @@ Preserve distinct agent viewpoints as first-class objects alongside merged findi
     "independent_count": 0,
     "hearsay_rate": 0.0,
     "discounted_findings": []
+  },
+  "stemma_analysis": {
+    "groups": [{"id": "SG-1", "findings": ["ARCH-01", "QUAL-03"], "shared_sources": ["src/auth.ts:45"], "convergence_original": 3, "convergence_corrected": 1}],
+    "total_groups": 0,
+    "total_corrected_findings": 0
   }
 }
 ```

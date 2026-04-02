@@ -48,7 +48,7 @@ If reactions exist AND `hearsay_detection.enabled`: classify confirming reaction
 
 ### 3.7c. Lorenzen Move Validation (optional)
 
-If `LORENZEN_CONFIG` provided and `enabled: true`: validate move legality per reaction's Move Type. Attack needs counter-evidence, defense needs new evidence, new-assertion capped at `new_assertion_max_per_agent`, concession always valid. Pre-rsj.7 agents without Move Type: `move_legality: null`. Tally valid/invalid/null/distribution.
+If `LORENZEN_CONFIG` provided and `enabled: true`: validate move legality per reaction's Move Type. Attack needs counter-evidence, defense needs new evidence, distinction needs boundary (must specify what is accepted vs rejected), new-assertion capped at `new_assertion_max_per_agent`, concession always valid. Pre-rsj.7 agents without Move Type: `move_legality: null`. Tally valid/invalid/null/distribution.
 
 ### 3.8. Sycophancy Scoring (optional)
 

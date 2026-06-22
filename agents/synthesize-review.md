@@ -8,7 +8,9 @@ You are the intersynth review synthesis agent. Read agent output files, validate
 
 ## Input Contract
 
-Parameters in your prompt: `OUTPUT_DIR` (agent outputs), `VERDICT_LIB` (path to lib-verdict.sh or `auto`), `CONTEXT` (review context), `MODE` (quality-gates/review/flux-drive), `PROTECTED_PATHS` (exclude patterns), `FINDINGS_TIMELINE` (peer-findings.jsonl, optional), `LORENZEN_CONFIG` (dialogue game config JSON, optional).
+Parameters in your prompt: `SYNTHESIS_PROTOCOL_VERSION` (e.g. `1.0`), `OUTPUT_DIR` (agent outputs), `VERDICT_LIB` (path to lib-verdict.sh or `auto`), `CONTEXT` (review context), `MODE` (quality-gates/review/flux-drive), `PROTECTED_PATHS` (exclude patterns), `FINDINGS_TIMELINE` (peer-findings.jsonl, optional), `LORENZEN_CONFIG` (dialogue game config JSON, optional).
+
+This interface is defined by the Synthesis Delegation contract (interflux `docs/spec/contracts/synthesis-delegation.md`). The canonical review output filename is **`summary.md`** (research mode uses `synthesis.md`). Stamp `"synthesis_protocol_version"` (from `SYNTHESIS_PROTOCOL_VERSION`, default `1.0`) into `findings.json`, and echo `Protocol: {SYNTHESIS_PROTOCOL_VERSION}` as the first line of the return string.
 
 ## Steps
 
@@ -95,15 +97,16 @@ P0/P1 CRITICAL (blocks merge), P2 IMPORTANT (should fix), P3/IMP NICE-TO-HAVE.
 
 ### 8. Write outputs
 
-**`{OUTPUT_DIR}/synthesis.md`**: Synthesis Report with sections: Verdict Summary (agent table), Contested Findings (if reactions), Findings (P0→IMP with attribution/convergence), Reaction Analysis, Sycophancy Analysis, Stemma Analysis, Diverse Perspectives, Discourse Quality (Sawyer flow + Lorenzen legality), Conflicts, Files. Omit empty optional sections.
+**`{OUTPUT_DIR}/summary.md`**: Synthesis Report with sections: Verdict Summary (agent table), Contested Findings (if reactions), Findings (P0→IMP with attribution/convergence), Reaction Analysis, Sycophancy Analysis, Stemma Analysis, Diverse Perspectives, Discourse Quality (Sawyer flow + Lorenzen legality), Conflicts, Files. Omit empty optional sections.
 
-**`{OUTPUT_DIR}/findings.json`**: Structured JSON with reviewed date, agents, findings (with all annotations: convergence, stemma, reactions, hearsay, co_located, cross_references), improvements, verdict, perspectives, dwsq, sycophancy_analysis, hearsay_analysis, stemma_analysis, discourse_health, discourse_analysis. Verdict logic: any P0 → risky, any P1 → needs-changes, else → safe.
+**`{OUTPUT_DIR}/findings.json`**: Structured JSON with `synthesis_protocol_version`, reviewed date, agents, findings (with all annotations: convergence, stemma, reactions, hearsay, co_located, cross_references), improvements, verdict, perspectives, dwsq, sycophancy_analysis, hearsay_analysis, stemma_analysis, discourse_health, discourse_analysis. Verdict logic: any P0 → risky, any P1 → needs-changes, else → safe.
 
 ## Return Value
 
-Return ONLY this compact summary (max 15 lines):
+Return ONLY this compact summary (max 15 lines). The first line MUST echo the protocol version:
 
 ```
+Protocol: {SYNTHESIS_PROTOCOL_VERSION}
 Validation: N/M agents valid
 Verdict: [safe|needs-changes|risky]
 Gate: [PASS|FAIL]
@@ -115,4 +118,4 @@ Top findings:
 - [severity] [title] — [agent] ([convergence])
 ```
 
-The host reads `{OUTPUT_DIR}/synthesis.md` for the full report. Never send full prose back.
+The host reads `{OUTPUT_DIR}/summary.md` for the full report. Never send full prose back.

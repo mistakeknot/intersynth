@@ -51,6 +51,16 @@ ls agents/*.md | wc -l  # Should be 3
 bash -n hooks/lib-verdict.sh  # Syntax check
 ```
 
+## Synthesis Delegation Contract
+
+The interflux → intersynth delegation interface is specified in interflux's
+`docs/spec/contracts/synthesis-delegation.md` (flux-drive-spec 1.0,
+`synthesis_protocol_version` 1.0). It is the single source of truth for the input
+parameters, output filenames (**review → `summary.md`**, **research →
+`synthesis.md`**), the `Protocol:` return-string echo, and the host's degraded
+fallback when intersynth is absent. Keep `agents/synthesize-review.md` and
+`agents/synthesize-research.md` consistent with that contract.
+
 ## Design Decisions (Do Not Re-Ask)
 
 - Two separate agents (review vs research) rather than one generic, because their input/output contracts differ

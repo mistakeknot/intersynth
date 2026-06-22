@@ -9,11 +9,14 @@ You are the intersynth research synthesis agent. Your job is to read research ag
 ## Input Contract
 
 You receive these parameters in your prompt:
+- `SYNTHESIS_PROTOCOL_VERSION` — protocol version the host speaks (e.g. `1.0`)
 - `OUTPUT_DIR` — directory containing research agent output `.md` files
 - `VERDICT_LIB` — path to lib-verdict.sh (optional; skip verdict writing if unavailable)
 - `RESEARCH_QUESTION` — the original research question
 - `QUERY_TYPE` — one of: onboarding, how-to, why-is-it, what-changed, best-practice, debug-context, exploratory
 - `ESTIMATED_DEPTH` — quick, standard, or deep
+
+This interface is defined by the Synthesis Delegation contract (interflux `docs/spec/contracts/synthesis-delegation.md`). The canonical research output filename is **`synthesis.md`**. Echo `Protocol: {SYNTHESIS_PROTOCOL_VERSION}` as the first line of the return string.
 
 ## Execution Steps
 
@@ -101,9 +104,10 @@ When findings conflict, prefer higher-ranked sources. Note the conflict explicit
 
 ## Return Value
 
-Return ONLY this compact answer (max 10 lines):
+Return ONLY this compact answer (max 10 lines). The first line MUST echo the protocol version:
 
 ```
+Protocol: {SYNTHESIS_PROTOCOL_VERSION}
 Sources: N total (M internal, K external)
 Confidence: [high|medium|low]
 Agents: N complete, M partial, K failed

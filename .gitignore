@@ -1,3 +1,6 @@
 # Ephemeral runtime state
 .clavain/
 __pycache__/
+
+# Local publish-approval marker (never committed)
+.publish-approved

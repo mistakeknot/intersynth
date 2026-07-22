@@ -1,0 +1,25 @@
+{
+  "name": "intersynth",
+  "version": "0.1.13",
+  "description": "Multi-agent synthesis engine — collects findings from parallel review/research agents, deduplicates, writes verdicts, produces compact summaries. Keeps agent output out of the host context.",
+  "license": "MIT",
+  "keywords": [
+    "synthesis",
+    "multi-agent",
+    "verdict",
+    "context-efficiency",
+    "review"
+  ],
+  "author": "MK",
+  "interface": {
+    "displayName": "intersynth",
+    "shortDescription": "Multi-agent synthesis engine — collects findings from parallel review/research agents, deduplicates, writes verdicts,..."
+  },
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "command": "${KIMI_PLUGIN_ROOT}/hooks/session-start.sh",
+      "timeout": 5
+    }
+  ]
+}
